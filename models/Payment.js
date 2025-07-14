@@ -1,16 +1,15 @@
 const mongoose = require('mongoose');
 
 const paymentSchema = new mongoose.Schema({
-  userId: String,
   productId: String,
   amount: Number,
   currency: String,
   paymentIntentId: String,
   status: String,
-  // Subscription-related fields
-  type: { type: String, enum: ['onetime', 'subscription'], required: true },
+  type: { type: String, enum: ['payment', 'subscription'], required: true },
   subscriptionId: String,
   lastPaymentDate: Date,
+  email: String,
   createdAt: { type: Date, default: Date.now }
 });
 

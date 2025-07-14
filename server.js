@@ -11,8 +11,7 @@ const app = express();
 // Configure CORS to allow your frontend and ngrok
 app.use(cors({
   origin: [
-    'http://localhost:3000',
-    'https://d8fd72bcebb0.ngrok-free.app'
+    'http://localhost:3000'
   ],
   credentials: true
 }));
