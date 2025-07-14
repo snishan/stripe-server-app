@@ -24,6 +24,8 @@ exports.handleWebhook = async (req, res) => {
         if (!userId || !productId) {
           console.warn('⚠️ Missing metadata in invoice.payment_succeeded');
         }
+        const periodEndUnix = invoice.lines?.data?.[0]?.period?.end;
+        const currentPeriodEnd = periodEndUnix ? new Date(periodEndUnix * 1000) : null;
         await Payment.create({
           userId,
           productId,
@@ -33,7 +35,7 @@ exports.handleWebhook = async (req, res) => {
           status: 'succeeded',
           type: 'subscription',
           subscriptionId: invoice.subscription,
-          currentPeriodEnd: new Date(invoice.lines.data[0].period.end * 1000),
+          currentPeriodEnd,
           lastPaymentDate: new Date()
         });
         console.log("💳 Subscription payment recorded");
