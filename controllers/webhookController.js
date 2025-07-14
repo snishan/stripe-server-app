@@ -20,6 +20,8 @@ exports.handleWebhook = async (req, res) => {
     switch (event.type) {
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object;
+        console.log("invoice",invoice);
+        
         const { userId, productId } = invoice.metadata || {};
         if (!userId || !productId) {
           console.warn('⚠️ Missing metadata in invoice.payment_succeeded');
