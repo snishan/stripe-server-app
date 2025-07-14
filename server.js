@@ -8,16 +8,23 @@ connectDB();
 
 const app = express();
 
-app.use(cors());
+// Configure CORS to allow your frontend and ngrok
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://d8fd72bcebb0.ngrok-free.app'
+  ],
+  credentials: true
+}));
 
-// Webhook endpoint needs raw body - must be before body parsers
+// Webhook route FIRST
 app.post('/webhook', express.raw({type: 'application/json'}), require('./controllers/webhookController').handleWebhook);
 
-// Body parsers for all other routes
+// THEN body parsers for everything else
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Routes
+// Other routes
 app.use('/api/payments', paymentRoutes);
 
 // Health check endpoint

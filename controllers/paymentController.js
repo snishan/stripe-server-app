@@ -2,46 +2,68 @@ const stripe = require('../config/stripe');
 
 exports.createSubscription = async (req, res) => {
   try {
-    const { email, name, priceId, paymentMethodId } = req.body;
+    const { email, name, priceId } = req.body;
 
-    // 1. Find or create customer by email
-    let customers = await stripe.customers.list({ email, limit: 1 });
-    let customer;
-    if (customers.data.length > 0) {
-      customer = customers.data[0];
-    } else {
-      customer = await stripe.customers.create({ email, name });
-    }
-
-    // 2. Attach payment method to customer
-    await stripe.paymentMethods.attach(paymentMethodId, { customer: customer.id });
-
-    // 3. Set payment method as default
-    await stripe.customers.update(customer.id, {
-      invoice_settings: { default_payment_method: paymentMethodId }
+    // Create a Stripe Checkout Session for subscription
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      customer_email: email,
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      subscription_data: {
+        metadata: {
+          name: name || '',
+          isSubscription: 'true'
+        },
+      },
+      metadata: {
+        isSubscription: 'true'
+      },
+      success_url: process.env.CHECKOUT_SUCCESS_URL || 'http://localhost:3000/success?session_id={CHECKOUT_SESSION_ID}',
+      cancel_url: process.env.CHECKOUT_CANCEL_URL || 'http://localhost:3000/cancel',
     });
 
-    // 4. Create subscription
-    const subscription = await stripe.subscriptions.create({
-      customer: customer.id,
-      items: [{ price: priceId }],
-      expand: ['latest_invoice.payment_intent']
+    res.json({ sessionId: session.id });
+  } catch (error) {
+    res.status(400).json({ error: { message: error.message } });
+  }
+};
+
+exports.createCheckoutSession = async (req, res) => {
+  try {
+    const { email, name, priceId, isSubscription } = req.body;
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: isSubscription ? 'subscription' : 'payment',
+      customer_email: email,
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      ...(isSubscription && {
+        subscription_data: {
+          metadata: {
+            name: name || '',
+            isSubscription: 'true'
+          },
+        },
+      }),
+      metadata: {
+        isSubscription: isSubscription ? 'true' : 'false'
+      },
+      success_url: process.env.CHECKOUT_SUCCESS_URL || 'http://localhost:3000/success?session_id={CHECKOUT_SESSION_ID}',
+      cancel_url: process.env.CHECKOUT_CANCEL_URL || 'http://localhost:3000/cancel',
     });
 
-    // 5. Return clientSecret for payment confirmation
-    const paymentIntent = subscription.latest_invoice && subscription.latest_invoice.payment_intent;
-    if (paymentIntent && paymentIntent.client_secret) {
-      res.json({
-        clientSecret: paymentIntent.client_secret,
-        subscriptionId: subscription.id
-      });
-    } else {
-      res.json({
-        clientSecret: null,
-        subscriptionId: subscription.id,
-        message: 'No payment is required at this time or payment_intent is not available.'
-      });
-    }
+    res.json({ sessionId: session.id });
   } catch (error) {
     res.status(400).json({ error: { message: error.message } });
   }
@@ -56,7 +78,8 @@ exports.createPaymentIntent = async (req, res) => {
       currency: currency || 'usd',
       metadata: {
         userId: userId || '',
-        productId: productId || ''
+        productId: productId || '',
+        isSubscription: 'false'
       }
     });
 

@@ -7,6 +7,11 @@ const paymentSchema = new mongoose.Schema({
   currency: String,
   paymentIntentId: String,
   status: String,
+  // Subscription-related fields
+  type: { type: String, enum: ['onetime', 'subscription'], required: true },
+  subscriptionId: String,
+  currentPeriodEnd: Date,
+  lastPaymentDate: Date,
   createdAt: { type: Date, default: Date.now }
 });
 
