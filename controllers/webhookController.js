@@ -20,24 +20,43 @@ exports.handleWebhook = async (req, res) => {
     switch (event.type) {
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object;
-        console.log("invoice",invoice);
-        
+        console.log("invoice", invoice);
+
+        // Safely extract metadata
         const { userId, productId } = invoice.metadata || {};
-        if (!userId || !productId) {
-          console.warn('⚠️ Missing metadata in invoice.payment_succeeded');
+        const amount = invoice.amount_paid != null ? invoice.amount_paid / 100 : null;
+        const currency = invoice.currency || null;
+        const paymentIntentId = invoice.payment_intent || null;
+        const subscriptionId = invoice.subscription || null;
+
+        // Period end logic
+        let currentPeriodEnd = null;
+        const periodEndUnix = invoice.lines?.data?.[0]?.period?.end;
+        if (periodEndUnix) {
+          currentPeriodEnd = new Date(periodEndUnix * 1000);
         }
-        // const periodEndUnix = invoice.lines?.data?.[0]?.period?.end;
-        // const currentPeriodEnd = periodEndUnix ? new Date(periodEndUnix * 1000) : null;
+
+        console.log("Extracted fields:", {
+          userId,
+          productId,
+          amount,
+          currency,
+          paymentIntentId,
+          subscriptionId,
+          currentPeriodEnd
+        });
+
         await Payment.create({
           userId,
           productId,
-          amount: invoice.amount_paid / 100,
-          currency: invoice.currency,
-          paymentIntentId: invoice.payment_intent,
+          amount,
+          currency,
+          paymentIntentId,
           status: 'succeeded',
           type: 'subscription',
-          subscriptionId: invoice.subscription,
-          lastPaymentDate: new Date(invoice.created)
+          subscriptionId,
+          currentPeriodEnd,
+          lastPaymentDate: new Date(invoice.created * 1000)
         });
         console.log("💳 Subscription payment recorded");
         break;
@@ -46,18 +65,29 @@ exports.handleWebhook = async (req, res) => {
         const subscription = event.data.object;
         const subscriptionId = subscription.id;
         const { userId, productId } = subscription.metadata || {};
-        if (!userId || !productId) {
-          console.warn('⚠️ Missing metadata in subscription');
-        }
+        const status = subscription.status || null;
+        const currentPeriodEnd = subscription.current_period_end
+          ? new Date(subscription.current_period_end * 1000)
+          : null;
+
+        console.log("Extracted subscription fields:", {
+          userId,
+          productId,
+          subscriptionId,
+          status,
+          currentPeriodEnd
+        });
+
         await Payment.create({
           userId,
           productId,
           amount: null,
           currency: null,
           paymentIntentId: null,
-          status: subscription.status,
+          status,
           type: 'subscription',
           subscriptionId,
+          currentPeriodEnd,
           lastPaymentDate: null
         });
         console.log("📦 Subscription created (recorded in Payment)");
