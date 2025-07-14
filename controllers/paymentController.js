@@ -2,31 +2,36 @@ const stripe = require('../config/stripe');
 
 exports.createSubscription = async (req, res) => {
   try {
-    const { email, payment_method, priceId, userId, productId } = req.body;
+    const { email, name, priceId, paymentMethodId } = req.body;
 
-    // Create customer
-    const customer = await stripe.customers.create({
-      email,
-      payment_method,
-      invoice_settings: {
-        default_payment_method: payment_method,
-      },
+    // 1. Find or create customer by email
+    let customers = await stripe.customers.list({ email, limit: 1 });
+    let customer;
+    if (customers.data.length > 0) {
+      customer = customers.data[0];
+    } else {
+      customer = await stripe.customers.create({ email, name });
+    }
+
+    // 2. Attach payment method to customer
+    await stripe.paymentMethods.attach(paymentMethodId, { customer: customer.id });
+
+    // 3. Set payment method as default
+    await stripe.customers.update(customer.id, {
+      invoice_settings: { default_payment_method: paymentMethodId }
     });
 
-    // Create subscription
+    // 4. Create subscription
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
       items: [{ price: priceId }],
-      expand: ['latest_invoice.payment_intent'],
-      metadata: {
-        userId: userId || '',
-        productId: productId || ''
-      }
+      expand: ['latest_invoice.payment_intent']
     });
 
+    // 5. Return clientSecret for payment confirmation
     res.json({
       clientSecret: subscription.latest_invoice.payment_intent.client_secret,
-      subscriptionId: subscription.id,
+      subscriptionId: subscription.id
     });
   } catch (error) {
     res.status(400).json({ error: { message: error.message } });
