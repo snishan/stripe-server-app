@@ -2,7 +2,7 @@ const stripe = require('../config/stripe');
 
 exports.createSubscription = async (req, res) => {
   try {
-    const { email, payment_method, priceId } = req.body;
+    const { email, payment_method, priceId, userId, productId } = req.body;
 
     // Create customer
     const customer = await stripe.customers.create({
@@ -18,6 +18,10 @@ exports.createSubscription = async (req, res) => {
       customer: customer.id,
       items: [{ price: priceId }],
       expand: ['latest_invoice.payment_intent'],
+      metadata: {
+        userId: userId || '',
+        productId: productId || ''
+      }
     });
 
     res.json({
@@ -31,11 +35,15 @@ exports.createSubscription = async (req, res) => {
 
 exports.createPaymentIntent = async (req, res) => {
   try {
-    const { amount, currency } = req.body;
+    const { amount, currency, userId, productId } = req.body;
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
       currency: currency || 'usd',
+      metadata: {
+        userId: userId || '',
+        productId: productId || ''
+      }
     });
 
     res.json({ clientSecret: paymentIntent.client_secret });
