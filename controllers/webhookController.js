@@ -66,8 +66,8 @@ exports.handleWebhook = async (req, res) => {
         console.log(`Unhandled event type ${event.type}`);
     }
   } catch (dbErr) {
-    console.error('Database error:', dbErr);
-    return res.status(500).json({ error: 'Database error' });
+    console.error('Database error:', dbErr, 'Event:', event);
+    return res.status(500).json({ error: 'Database error', details: dbErr.message });
   }
 
   res.json({ received: true });
