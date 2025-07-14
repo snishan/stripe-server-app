@@ -29,10 +29,19 @@ exports.createSubscription = async (req, res) => {
     });
 
     // 5. Return clientSecret for payment confirmation
-    res.json({
-      clientSecret: subscription.latest_invoice.payment_intent.client_secret,
-      subscriptionId: subscription.id
-    });
+    const paymentIntent = subscription.latest_invoice && subscription.latest_invoice.payment_intent;
+    if (paymentIntent && paymentIntent.client_secret) {
+      res.json({
+        clientSecret: paymentIntent.client_secret,
+        subscriptionId: subscription.id
+      });
+    } else {
+      res.json({
+        clientSecret: null,
+        subscriptionId: subscription.id,
+        message: 'No payment is required at this time or payment_intent is not available.'
+      });
+    }
   } catch (error) {
     res.status(400).json({ error: { message: error.message } });
   }
