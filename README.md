@@ -40,7 +40,7 @@ stripe-server-app/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/stripe-server-app.git
+   git clone https://github.com/snishan/stripe-server-app.git
    cd stripe-server-app
    ```
 
