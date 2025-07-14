@@ -35,7 +35,6 @@ exports.handleWebhook = async (req, res) => {
           status: 'succeeded',
           type: 'subscription',
           subscriptionId: invoice.subscription,
-          currentPeriodEnd: new Date(invoice.created * 1000),
           lastPaymentDate: new Date(invoice.created)
         });
         console.log("💳 Subscription payment recorded");
@@ -57,7 +56,6 @@ exports.handleWebhook = async (req, res) => {
           status: subscription.status,
           type: 'subscription',
           subscriptionId,
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
           lastPaymentDate: null
         });
         console.log("📦 Subscription created (recorded in Payment)");

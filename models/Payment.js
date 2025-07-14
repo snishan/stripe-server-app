@@ -10,7 +10,6 @@ const paymentSchema = new mongoose.Schema({
   // Subscription-related fields
   type: { type: String, enum: ['onetime', 'subscription'], required: true },
   subscriptionId: String,
-  currentPeriodEnd: Date,
   lastPaymentDate: Date,
   createdAt: { type: Date, default: Date.now }
 });
